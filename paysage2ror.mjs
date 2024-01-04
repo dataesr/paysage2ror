@@ -54,20 +54,34 @@ const getRors = (structures) => {
     return structure;
   }));
 };
-
 const writeCsv = (data) => {
+
   const csvWriter = createObjectCsvWriter({
     path: 'output.csv',
     header: [
-      { id: 'paysageId', title: 'paysageId' },
-      { id: 'paysageUrl', title: 'paysageUrl' },
-      { id: 'paysageNames', title: 'paysageNames' },
-      { id: 'ror', title: 'ror' },
-      { id: 'rorName', title: 'rorName' },
-    ]
+      { id: 'paysageId', title: 'ID de la structure' },
+      { id: 'type', title: "Type d'identifiant" },
+      { id: 'header1', title: 'Valeur' },
+      { id: 'header2', title: 'Date de début {2020-07-02}' },
+      { id: 'header3', title: 'Date de fin {2020-07-02}' },
+      { id: 'header4', title: 'Actif {O = Oui, N = Non}' },
+    ],
   });
-  return csvWriter.writeRecords(data);
-}
+
+  const modifiedData = data.map((record) => {
+    return {
+      paysageId: record.paysageId,
+      type: 'ror',
+      header1: record.ror.slice(-9), // 9 last characters of the string 
+      header2: '', // Empty
+      header3: '', // Empty
+      header4: 'O', // O, because all of them are supposed to be activ
+    };
+  });
+
+  return csvWriter.writeRecords(modifiedData);
+};
+
 
 // Collect all French structures from Paysage without RoR identifier
 console.log('01 _ Collect structures from Paysage')
@@ -79,4 +93,4 @@ const structuresConsolidatedWithRor = structures.filter((structure) => structure
 // Write results into CSV
 console.log('03 _ Write results in CSV')
 await writeCsv(structuresConsolidatedWithRor);
-console.log('Done !');
+console.log('Done ! Output ready for bulk import ! Well done Anne !');
