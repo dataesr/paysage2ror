@@ -93,4 +93,4 @@ const structuresConsolidatedWithRor = structures.filter((structure) => structure
 // Write results into CSV
 console.log('03 _ Write results in CSV')
 await writeCsv(structuresConsolidatedWithRor);
-console.log('Done ! Output ready for bulk import ! Well done Anne !');
+console.log('Done ! Output ready for bulk import !');
