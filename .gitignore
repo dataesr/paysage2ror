@@ -1,3 +1,4 @@
-paysage2ror.csv
 .env
 node_modules
+paysage2ror_structuresWithRors.csv
+paysage2ror_structuresWithoutRors.csv

@@ -18,12 +18,12 @@ const getStructuresWithoutRor = async (page = 1) => {
   console.log(`Page ${page} of Paysage`);
   const skip = (page - 1) * PAYSAGE_PAGE_SIZE;
   // Retrieve all structures from the geographical category "France"
-  let structures = [];
+  let structuresWithoutRor = [];
   const response = await axios.get(`https://api.paysage.dataesr.ovh/geographical-categories/4d6le/structures?limit=${PAYSAGE_PAGE_SIZE}&skip=${skip}`, { headers: { 'X-API-KEY': process.env.XAPIKEY } });
   (response?.data?.data ?? []).forEach((structure) => {
-    const structureRors = (structure?.identifiers ?? []).filter((identifier) => identifier.type === 'ror');
-    if (structureRors.length === 0) {
-      structures.push({
+    const rors = (structure?.identifiers ?? []).filter((identifier) => identifier.type === 'ror');
+    if (rors.length === 0) {
+      structuresWithoutRor.push({
         paysageId: structure.id,
         paysageUrl: `https://paysage.enseignementsup-recherche.gouv.fr/structures/${structure.id}/presentation`,
         paysageNames: [...new Set([structure?.displayName, structure?.currentName?.officialName, structure?.currentName?.usualName].filter((x) => x))],
@@ -32,13 +32,14 @@ const getStructuresWithoutRor = async (page = 1) => {
   });
   if (response.data.data.length === PAYSAGE_PAGE_SIZE) {
     const newStructures = await getStructuresWithoutRor(page + 1);
-    structures = [...structures, ...newStructures];
+    structuresWithoutRor = [...structuresWithoutRor, ...newStructures];
   }
-  return structures;
+  return structuresWithoutRor;
 };
 
-const getRors = async (structures) => {
-  const rorStructures = []
+const getRorsForStructures = async (structures) => {
+  const structuresWithRors = [];
+  const structuresWithoutRors = [];
   for (let i = 0; i < structures.length; i++) {
     const structure = structures[i];
     for (let j = 0; j < structure.paysageNames.length; j++) {
@@ -48,17 +49,18 @@ const getRors = async (structures) => {
       if (result) {
         structure.ror = result?.organization?.id;
         structure.rorName = result?.organization?.name;
-        rorStructures.push(structure);
+        structuresWithRors.push(structure);
         break;
       };
     };
+    structuresWithoutRors.push(structure);
   };
-  return rorStructures;
+  return { structuresWithRors, structuresWithoutRors };
 };
 
-const writeCsv = (data) => {
+const writeStructuresWithRors = (data) => {
   const csvWriter = createObjectCsvWriter({
-    path: 'paysage2ror.csv',
+    path: 'paysage2ror_structuresWithRors.csv',
     header: [
       { id: 'paysageId', title: 'ID de la structure' },
       { id: 'paysageUrl', title: 'URL Paysage' },
@@ -87,15 +89,28 @@ const writeCsv = (data) => {
   return csvWriter.writeRecords(modifiedData);
 };
 
+const writeStructuresWithoutRors = (data) => {
+  const csvWriter = createObjectCsvWriter({
+    path: 'paysage2ror_structuresWithoutRors.csv',
+    header: [
+      { id: 'paysageId', title: 'ID de la structure' },
+      { id: 'paysageUrl', title: 'URL Paysage' },
+      { id: 'paysageNames', title: 'Noms Paysage' },
+    ],
+  });
+
+  return csvWriter.writeRecords(data);
+};
+
 
 // Collect all French structures from Paysage without RoR identifier
-console.log('01 _ Collect structures from Paysage');
+console.log('01. Collect structures from Paysage');
 const structuresWithoutRor = await getStructuresWithoutRor();
 // Check with our Affiliation Matcher if there is a RoR
-console.log('02 _ For structures, guess RoR from RoR API');
-const structures = await getRors(structuresWithoutRor);
-const structuresConsolidatedWithRor = structures.filter((structure) => structure?.ror);
+console.log('02. For structures, guess RoR from RoR API');
+const { structuresWithRors, structuresWithoutRors } = await getRorsForStructures(structuresWithoutRor);
 // Write results into CSV
-console.log('03 _ Write results in CSV');
-await writeCsv(structuresConsolidatedWithRor);
+console.log('03. Write results in CSV');
+await writeStructuresWithRors(structuresWithRors);
+await writeStructuresWithoutRors(structuresWithoutRors);
 console.log('Done ! Output ready for bulk import !');
