@@ -2,6 +2,6 @@
 
 Add missing RoR on French structures of Paysage.
 
-Tu run it, execute :
+To run it, execute :
 
-`node --experimental-specifier-resolution=node --env-file=.env paysage2ror.mjs`
+`node --experimental-specifier-resolution=node paysage2ror.mjs`
